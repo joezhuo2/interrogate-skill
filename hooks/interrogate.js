@@ -6,7 +6,7 @@ const path = require('path');
 const dir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const stateFile = path.join(dir, '.interrogate.json');
 const MODES = ['lite', 'full', 'ultra', 'off'];
-const DEFAULT = 'full';
+const DEFAULT = 'lite';
 
 const readMode = () => {
   if (MODES.includes(process.env.INTERROGATE_MODE)) return process.env.INTERROGATE_MODE;
@@ -19,9 +19,9 @@ const readMode = () => {
 };
 
 const HOW = `How to ask:
-- Ask before writing code, editing files or running commands that change anything. Reading and exploring first is fine; look things up yourself instead of asking what the code or docs already answer.
+- Ask early: after a light look (the files the request names, a directory listing, a quick search), before reading widely and before writing code, editing files or running commands that change anything. Do not ask what that light look already answers.
 - Use the AskUserQuestion tool when it is available (up to 4 questions per call, 2-4 options each, your recommended option first and marked "(Recommended)"). Otherwise ask in plain text as a short numbered list, each with your recommended answer.
-- Batch questions into one round; do not drip them one at a time.
+- One round per task: put every question, and the spec to confirm if any, in a single message. After the user answers, implement; do not send a second round unless something unexpected changes the plan.
 - Ask even if the session looks non-interactive or the files are small; the user installed this to be asked.
 - If the user says "just do it", "use your judgment" or similar, stop asking for that task, state the choices you made in one line, and proceed.
 - Small, unambiguous edits (a typo, a rename, a one-line fix, a direct question) need no questions in any mode.`;
@@ -34,7 +34,7 @@ const LITE = `- Ambiguous wording: the request can reasonably mean two different
 const FULL = `- Multiple valid choices: whenever there is more than one reasonable approach, library, data shape, file layout or naming, present the options with your recommendation instead of picking silently.
 - Scope boundaries: ask what is in and out of scope (tests, docs, edge cases, backwards compatibility) when the request does not say.
 - New dependencies: ask before adding any package, service or tool.
-- Spec confirmation: before implementing, play back a short spec of what you will build (behavior, files touched, key decisions) and wait for a yes.`;
+- Spec confirmation: in the same message as your questions, play back a short spec of what you will build (behavior, files touched, key decisions) assuming your recommended answers, so one reply settles both.`;
 
 const ULTRA = `For any task that is not small, also ask about:
 - Goal and success criteria: why it is needed, what "done" looks like, and how it will be verified.

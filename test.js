@@ -15,10 +15,11 @@ const set = (...a) => exec(['set', ...a]);
 const sid = `test-${process.pid}`;
 const hook = (event, source) => exec([], JSON.stringify({ session_id: sid, hook_event_name: event, source }));
 
-assert.match(set(), /mode: full/, 'full by default');
-assert.match(hook('SessionStart'), /INTERROGATE FULL ON/, 'rules at session start');
+assert.match(set(), /mode: lite/, 'lite by default');
+assert.match(hook('SessionStart'), /INTERROGATE LITE ON/, 'rules at session start');
 assert.strictEqual(hook('UserPromptSubmit'), '', 'no repeat on later prompts');
 
+set('full'); hook('UserPromptSubmit');
 const lite = set('lite');
 assert.match(lite, /INTERROGATE LITE ON/, 'set lite');
 assert.doesNotMatch(lite, /Multiple valid choices/, 'lite excludes full rules');

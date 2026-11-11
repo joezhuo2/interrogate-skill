@@ -13,4 +13,4 @@ for (const cmd of [
     process.exit(1);
   }
 }
-console.log('interrogate is installed in full mode. Restart Claude Code, then use /interrogate lite|full|ultra|off.');
+console.log('interrogate is installed in lite mode. Restart Claude Code, then use /interrogate lite|full|ultra|off.');

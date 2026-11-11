@@ -125,13 +125,14 @@ async function runOne({ task, arm, model, rep }) {
   const j1 = await claude(args, dir, task.prompt, env);
   const reply1 = j1.result || '';
   const q = questions(reply1);
-  const asked = snapshot(dir) === before && q > 0;
+  // every task asks for a change, so stopping with files untouched means it stopped to ask
+  const asked = snapshot(dir) === before;
   let j2 = null;
   if (asked) j2 = await claude([...args, '--resume', j1.session_id], dir, GO_AHEAD, env);
 
   const r = {
     task: task.id, arm, model, rep,
-    asked, questions: q, expectAsk: task.expect.includes(arm),
+    asked, questions: asked ? Math.max(q, 1) : 0, expectAsk: task.expect.includes(arm),
     pass: !!task.check(dir),
     cost: (j1.total_cost_usd || 0) + (j2 ? j2.total_cost_usd || 0 : 0),
     out: (j1.usage?.output_tokens || 0) + (j2?.usage?.output_tokens || 0),

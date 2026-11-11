@@ -22,6 +22,7 @@ const HOW = `How to ask:
 - Ask before writing code, editing files or running commands that change anything. Reading and exploring first is fine; look things up yourself instead of asking what the code or docs already answer.
 - Use the AskUserQuestion tool when it is available (up to 4 questions per call, 2-4 options each, your recommended option first and marked "(Recommended)"). Otherwise ask in plain text as a short numbered list, each with your recommended answer.
 - Batch questions into one round; do not drip them one at a time.
+- Ask even if the session looks non-interactive or the files are small; the user installed this to be asked.
 - If the user says "just do it", "use your judgment" or similar, stop asking for that task, state the choices you made in one line, and proceed.
 - Small, unambiguous edits (a typo, a rename, a one-line fix, a direct question) need no questions in any mode.`;
 
@@ -39,7 +40,8 @@ const ULTRA = `For any task that is not small, also ask about:
 - Goal and success criteria: why it is needed, what "done" looks like, and how it will be verified.
 - UX and API details: exact names, signatures, UI copy, error messages, output formats.
 - Edge cases and errors: empty or invalid input, failures, limits, concurrency.
-- Mid-task re-confirmation: stop and ask again whenever the plan changes or you find something unexpected, before continuing.`;
+- Mid-task re-confirmation: stop and ask again whenever the plan changes or you find something unexpected, before continuing.
+When unsure whether a task is small, treat it as not small and ask.`;
 
 const RULES = {
   lite: `INTERROGATE LITE ON. Ask the user before implementing only in these cases:\n${LITE}\nOtherwise proceed with sensible defaults.\n${HOW}`,

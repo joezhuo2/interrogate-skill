@@ -1,0 +1,11 @@
+{
+  "name": "interrogate",
+  "owner": { "name": "joezhuo2" },
+  "plugins": [
+    {
+      "name": "interrogate",
+      "source": "./",
+      "description": "Makes Claude ask clarifying questions and confirm its design before implementing. Set the mode with /interrogate."
+    }
+  ]
+}

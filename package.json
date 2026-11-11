@@ -1,0 +1,26 @@
+{
+  "name": "interrogate-skill",
+  "version": "0.1.0",
+  "description": "Claude Code plugin that makes Claude ask clarifying questions and confirm its design before implementing. Modes: lite, full, ultra.",
+  "license": "MIT",
+  "repository": "github:joezhuo2/interrogate-skill",
+  "bin": {
+    "interrogate-skill": "bin/install.js"
+  },
+  "files": [
+    "bin",
+    "hooks",
+    "commands",
+    ".claude-plugin"
+  ],
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-plugin",
+    "skill",
+    "clarifying-questions"
+  ]
+}

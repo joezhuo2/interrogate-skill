@@ -1,0 +1,8 @@
+{
+  "name": "interrogate",
+  "version": "0.1.0",
+  "description": "Makes Claude ask clarifying questions and confirm its design before implementing. Modes: lite, full, ultra. Set with /interrogate.",
+  "author": { "name": "joezhuo2" },
+  "repository": "https://github.com/joezhuo2/interrogate-skill",
+  "license": "MIT"
+}

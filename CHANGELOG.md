@@ -9,5 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Three modes that set when Claude asks before implementing: `lite` (ambiguity, missing info, destructive actions, conflicts), `full` (adds multiple choices, scope, new dependencies and a spec confirmation) and `ultra` (adds goals, UX/API details, edge cases and mid-task re-confirmation for any non-small task).
-- `/interrogate [lite|full|ultra|off]` sets the mode for every session; no argument shows the current one. Default is `full`.
-- npx / npm installer, benchmark script and self-test.
+- `/interrogate [lite|full|ultra|off]` sets the mode for every session; no argument shows the current one. Default is `lite`.
+- Claude asks after a light look, before reading widely, and puts all questions and the spec confirmation in one message.
+- npx / npm installer, self-test, and a benchmark with a simulated user whose preference differs from the first guess, counting corrections and lost data.

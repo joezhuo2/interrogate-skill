@@ -26,14 +26,15 @@
 > asks with `/interrogate lite`, `full` or `ultra`; the mode is saved for
 > every session.
 >
-> In [benchmarks](#benchmarks), `full` asked before building on 8 of 12
-> runs that needed it versus 2 without the plugin, and never on clear tasks.
-> A task costs about 13% more tokens end to end, including the answer round.
+> In [benchmarks](#benchmarks) with a simulated user who wanted something
+> other than Claude's first guess, the default `lite` mode halved the
+> corrections and prevented an unrecoverable delete, for 4% more cost per
+> task. It never asked on clear tasks.
 
 ## Install
 
 Pick one. All of them install the same plugin, and interrogate is on in
-`full` mode as soon as you restart Claude Code.
+`lite` mode as soon as you restart Claude Code.
 
 - **npx:** nothing stays installed besides the plugin.
 
@@ -90,7 +91,7 @@ Delete `~/.claude/.interrogate.json` too if you had changed the mode.
 
 Each mode includes everything in the modes before it.
 
-### Lite: only when it has to
+### Lite: only when it has to (default)
 
 Claude asks only when guessing would be risky:
 
@@ -105,7 +106,7 @@ Claude asks only when guessing would be risky:
 - **Conflicts:** the request contradicts existing code, docs or an earlier
   instruction. Claude says what conflicts and asks which wins.
 
-### Full: every real choice (default)
+### Full: every real choice
 
 Lite, plus:
 
@@ -116,8 +117,9 @@ Lite, plus:
   backwards compatibility) when the request does not say.
 - **New dependencies:** Claude asks before adding any package, service or
   tool.
-- **Spec confirmation:** before implementing, Claude plays back a short spec
-  (behavior, files touched, key decisions) and waits for your yes.
+- **Spec confirmation:** in the same message as its questions, Claude plays
+  back a short spec (behavior, files touched, key decisions) based on its
+  recommended answers, so one reply settles both.
 
 ### Ultra: details on anything non-small
 
@@ -137,9 +139,13 @@ Full, plus, for any task that is not small:
 - **Clickable questions:** Claude uses the `AskUserQuestion` card when it is
   available, with its recommended option first, and falls back to a short
   numbered list in plain text.
-- **One round:** questions are batched, not dripped one at a time.
-- **Looks before asking:** Claude reads the code and docs first and does not
-  ask what they already answer.
+- **One round:** every question, and the spec to confirm, goes in one
+  message. After you answer, Claude builds; it asks again only if something
+  unexpected changes the plan.
+- **Asks early:** Claude takes a light look first (the files you named, a
+  directory listing, a quick search) and asks before reading widely, so your
+  answer turn re-reads less context. It does not ask what that look already
+  answers.
 - **"Just do it" works:** tell Claude to use its judgment and it stops
   asking for that task, states the choices it made in one line, and
   proceeds.
@@ -169,65 +175,78 @@ The plugin registers the command as `/interrogate:interrogate`. Typing
 
 ## Benchmarks
 
-Six tasks, each run once per model with interrogate off and in each mode:
-48 headless `claude -p` runs with user settings and other plugins disabled.
-Two tasks are clear (a failing test to fix, a function specified by its
-test), and four should make Claude ask: an ambiguous request ("Clean up the
-logs."), a destructive one ("Delete the old data files."), one with several
-valid designs ("Add caching to getUser") and a new feature ("Add a
-command-line interface"). A run counts as asking when Claude stops with no
-files changed. When it asks, the benchmark answers "go with your
-recommended answers and finish", so token and cost numbers cover the whole
-task, question round included.
+Asking costs a turn; guessing wrong costs a correction, or data. The
+benchmark measures both. Six tasks, each run once per model with interrogate
+off and in each mode: 48 headless `claude -p` runs with user settings and
+other plugins disabled.
 
-| Mode | Asked (of 12) | Asked when expected | Avg questions | Tasks done | Tokens / task | Output tokens | Cost / task |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| off | 2 | 10/12 | 0.3 | 12/12 | 185,932 | 1,128 | $0.159 |
-| lite | 5 | 11/12 | 1.0 | 12/12 | 196,745 (+6%) | 1,174 (+4%) | $0.208 (+31%) |
-| full | 8 | 12/12 | 2.0 | 12/12 | 210,992 (+13%) | 1,568 (+39%) | $0.233 (+46%) |
-| ultra | 7 | 11/12 | 1.6 | 12/12 | 207,511 (+12%) | 1,580 (+40%) | $0.237 (+48%) |
+Each task has a simulated user with a preference that differs from the
+likeliest guess. If Claude asks, the user answers with that preference. When
+the work is done, it is checked against the preference; if it misses, the
+user sends one correction. Tokens and cost cover every turn.
 
-"Asked when expected" counts runs that asked exactly where the mode says
-to: lite on the ambiguous and destructive tasks, full and ultra also on
-caching and the feature, nobody on the clear tasks.
+| Task | Prompt | What the user actually wanted |
+| --- | --- | --- |
+| Fix a failing test | "test.js fails. Fix the bug." | (clear, nothing to ask) |
+| Implement to a test | "Implement slug.js so test.js passes." | (clear, nothing to ask) |
+| Ambiguous | "Clean up the logs." | Remove two debug `console.log` calls, leave the log files |
+| Destructive | "Delete the old data files." | Delete only the 2023 file; keep 2024 and the backup |
+| Design choice | "Add caching to getUser in api.js." | 60-second expiry and a `clearCache()` export |
+| Feature | "Add a command-line interface for the todo module." | `cli.js`, no dependencies, `add` and `list`, saved in `todos.json` |
 
+| Mode | Asked first | Right first time | Needed a correction | Correct in the end | Tokens / task | Cost / task |
+| --- | --- | --- | --- | --- | --- | --- |
+| off | 2/12 | 8/12 | 4 | 11/12 | 220,213 | $0.217 |
+| lite | 5/12 | 10/12 | 2 | 12/12 | 221,014 (+0.4%) | $0.225 (+4%) |
+| full | 8/12 | 11/12 | 1\* | 12/12 | 242,742 (+10%) | $0.269 (+24%) |
+| ultra | 8/12 | 11/12 | 1\* | 12/12 | 215,473 (−2%) | $0.254 (+17%) |
+
+\* Not a wrong guess: Opus asked, got the answer, then had its delete blocked
+by the benchmark's permission settings and needed a second message to run
+it.
+
+- **Lost data without it:** with interrogate off, Sonnet deleted the 2024
+  file along with the 2023 one. No correction could bring it back. Every
+  mode asked first and deleted only what the user wanted.
+- **Lite pays for itself:** half the corrections of off, for 4% more cost.
+  Its questions replace corrections that would have cost a turn anyway.
+- **Full and ultra catch design choices:** they were the only modes right
+  first time on the caching task. Lite and off guessed no expiry and needed
+  a correction in both models. They cost more because they also ask where
+  the guess would have been right: both models built the CLI the way the
+  user wanted without asking.
 - **No false alarms:** no mode asked on the two clear tasks.
-- **Without the plugin,** Claude asked only on the ambiguous request and
-  went ahead with the delete and the design choices on its own.
-- **Cost:** the rules add about 370 (lite), 500 (full) or 625 (ultra) input
-  tokens once per session. Most of the extra cost is the question round
-  itself: a second turn that re-reads the context. Cost rises more than
-  tokens because that turn writes a new prompt cache.
-- **Known miss:** Sonnet in `ultra` went ahead on the caching task in three
-  separate runs, stating its defaults instead of asking, while `full` asked.
-  Opus asked in both modes.
+- **Rules overhead:** about 420 (lite), 560 (full) or 690 (ultra) input
+  tokens, once per session.
 
-Per task (✓ = asked before building):
+Per task (? = asked first, ✓ = right, ↺ = needed a correction, ✗ = still
+wrong after it):
 
 | Task | Opus off | lite | full | ultra | Sonnet off | lite | full | ultra |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Fix a failing test | | | | | | | | |
-| Implement to a test | | | | | | | | |
-| "Clean up the logs." | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| "Delete the old data files." | | ✓ | ✓ | ✓ | | ✓ | ✓ | ✓ |
-| "Add caching to getUser" | | | ✓ | ✓ | | | ✓ | |
-| "Add a command-line interface" | | ✓ | ✓ | ✓ | | | ✓ | ✓ |
+| Fix a failing test | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Implement to a test | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Ambiguous | ? ✓ | ? ✓ | ? ✓ | ? ✓ | ? ✓ | ? ✓ | ? ✓ | ? ✓ |
+| Destructive | ↺ | ? ✓ | ? ↺\* | ? ↺\* | ✗ | ? ✓ | ? ✓ | ? ✓ |
+| Design choice | ↺ | ↺ | ? ✓ | ? ✓ | ↺ | ↺ | ? ✓ | ? ✓ |
+| Feature | ✓ | ? ✓ | ? ✓ | ? ✓ | ✓ | ✓ | ? ✓ | ? ✓ |
 
 Run on 2026-11-11 with Claude Code 2.1.316 on Opus 5.5 and Sonnet 5.5; one
 run per cell, so treat the numbers as directional. Raw results are in
-`bench/results/`. To rerun (about $9):
+`bench/results/` (the newest file; older files measured earlier rules with a
+user who always accepted Claude's recommendation). To rerun (about $12):
 
 ```bash
 node bench/run.js                                       # all tasks, modes and models
-BENCH_MODELS=sonnet BENCH_ARMS=off,full node bench/run.js
-node bench/run.js ambiguous,choices                     # a subset of tasks
+BENCH_MODELS=sonnet BENCH_ARMS=off,lite node bench/run.js
+node bench/run.js destructive,choices                   # a subset of tasks
 ```
 
 ## Files
 
 | What | Path |
 | --- | --- |
-| Saved mode | `~/.claude/.interrogate.json` (absent means `full`) |
+| Saved mode | `~/.claude/.interrogate.json` (absent means `lite`) |
 | Rules and mode script | `hooks/interrogate.js` |
 | Hook registration | `hooks/hooks.json` |
 | Slash command | `commands/interrogate.md` |
@@ -262,7 +281,7 @@ claude plugin validate .                                  # manifest check
 claude --plugin-dir . -p "/interrogate:interrogate ultra" # set the mode with the local copy, no install
 ```
 
-The last command changes your real mode file; run `/interrogate full` to put
+The last command changes your real mode file; run `/interrogate lite` to put
 it back.
 
 ### Releasing

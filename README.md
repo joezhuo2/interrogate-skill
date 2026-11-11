@@ -286,15 +286,20 @@ it back.
 
 ### Releasing
 
-Bump the version in `package.json` and `.claude-plugin/plugin.json`, then
-publish and tag. Pushing a `v*` tag runs `npm test` in GitHub Actions and
-creates the GitHub release when it passes.
+Bump the version in `package.json` and `.claude-plugin/plugin.json`, add a
+`CHANGELOG.md` entry, then push a matching `v*` tag. GitHub Actions runs
+`npm test`, checks the tag matches `package.json`, publishes to npm with
+provenance (skipped if that version is already on npm) and creates the
+GitHub release.
 
 ```bash
-npm publish
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
+
+CI publishing needs an npm automation token saved as the `NPM_TOKEN`
+repository secret. Without it, publish by hand with `npm publish` before
+pushing the tag.
 
 ## Contributing
 

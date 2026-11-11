@@ -13,9 +13,36 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - name: Tag matches package version
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish to npm unless this version is already there
+        run: |
+          v=$(node -p "require('./package.json').version")
+          if npm view "interrogate-skill@$v" version >/dev/null 2>&1; then
+            echo "interrogate-skill@$v is already on npm, skipping"
+          elif [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret is not set"; exit 1
+          else
+            npm publish --provenance --access public
+          fi
 
   release:
-    needs: test
+    needs: publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
